@@ -94,32 +94,41 @@ def strategy(df, stop_loss_percent: float = 0.1, take_profit_percent: float = 0.
     return df, sharpe(df)
     
 
-def plot_graphs(df, name):
+def plot_graphs(unopt, opt, cci):
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 12), dpi=400, sharex=True)
 
 
-    ax1.plot(df.index, df['close'])
+    ax1.plot(opt.index, opt['close'])
 
-    buying_df = df[df['buying_days'] == True]
-    take_profit_df = df[df['take_profit_days'] == True]
-    stop_loss_df = df[df['stop_loss_days'] == True]
+    buying_df = opt[opt['buying_days'] == True]
+    take_profit_df = opt[opt['take_profit_days'] == True]
+    stop_loss_df = opt[opt['stop_loss_days'] == True]
         
-    ax1.plot(buying_df.index, buying_df['close'], 'go', label='Buying')
+    ax1.plot(buying_df.index, buying_df['close'], 'go', label=f'Buying when cci is below -{cci}')
     ax1.plot(take_profit_df.index, take_profit_df['close'], 'ro', label='Take profit')
     ax1.plot(stop_loss_df.index, stop_loss_df['close'], 'rx', label='Stop Loss')
 
     ax1.legend()
+    ax1.set_ylabel("Price (USD)")
+    
 
+    ax2.plot(opt.index, unopt['portfolio_value'], label = "Unoptimized portfolio value")
+    ax2.plot(opt.index, opt['portfolio_value'], label = "Optimized portfolio value")
+    ax2.set_ylabel("Portfolio value (USD)")
+    ax2.legend()
 
-    ax2.plot(df.index, df['portfolio_value'])
+    ax3.plot(opt.index, opt['cci'])
+    ax3.set_xlabel("Date")
+    ax3.set_ylabel("CCI")
+    ax3.axhline(-cci, linestyle="--")
 
-
-    ax3.plot(df.index, df['cci'])
     fig.tight_layout()
-    fig.savefig(name)
+    fig.savefig("graph")
+
+    plt.close(fig)
 
 def brute(df):
-    best = -10
+    best = -math.inf
     best_i = 0
     best_j = 0
     best_u = 0
@@ -132,22 +141,20 @@ def brute(df):
                     best_i = i
                     best_j = j
                     best_u = u
-    print(best)
-    print(f"{best_i} {best_j} {best_u}")
+    return(best, best_i, best_j, best_u)
 
 if __name__ == "__main__":
     data = load_data(COMMODITIES["IBM"], "1d", "10y")
     df1, s = strategy(data.copy(),0.16, 0.26, 165)
-    print("optimized strategy sharper: {s}")
-    plot_graphs(df1, "Optimized")
+    print(f"optimized strategy sharpe: {s}")
     df2, s = strategy(data.copy())
-    print("UNoptimized strategy sharper: {s}")
+    print(f"UNoptimized strategy sharpe: {s}")
         
-    plot_graphs(df2, "Not_optimized")
+    plot_graphs(df2, df1, 165)
 
     # this has been run before but is commented out for speed as it takes a while
     # optimal numbers are 0.16 0.26 165
-    #brute(df)
+    #print(brute(data))
 
 
     
